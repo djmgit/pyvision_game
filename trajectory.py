@@ -11,6 +11,15 @@ import time
 
 import random
 
+
+class Brick():
+    def __init__(self, x, y, width, height, color):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.color = color
+
 pygame.init()
 clock = pygame.time.Clock()
 vs = cv2.VideoCapture(0)
@@ -23,8 +32,15 @@ red = (255,0,0)
 green = (0,255,0)
 blue = (0,0,255)
 
-display_width = 800
+display_width = 1000
 display_height = 800
+
+brick_width = 100
+brick_height = 40
+brick_vertical_cov = 400
+n_bricks_w = int(display_width / brick_width)
+n_bricks_h = int(brick_vertical_cov / brick_height)
+bricks = []
 
 line = []
 
@@ -33,6 +49,8 @@ greenUpper = (64, 255, 255)
 
 gameDisplay = pygame.display.set_mode((display_width, display_height))
 gameDisplay.fill(white)
+
+
 
 
 def draw_line():
@@ -62,10 +80,40 @@ def get_rand_dir(delta):
 def draw_bar(x, y, width, height):
     pygame.draw.rect(gameDisplay, red, (x, y, width, height))
 
+def draw_brick(brick):
+    pygame.draw.rect(gameDisplay, brick.color, (brick.x, brick.y, brick.width, brick.height))
+
 def check_collision(ball_x, ball_y, bar_x, bar_y, r):
-    if ((ball_y + r) >= bar_y) and ((ball_x - r >= bar_x) and (ball_x + r <= bar_x + bar_width)):
+    if ((ball_y + r) >= bar_y) and ((ball_x + r >= bar_x) and (ball_x - r <= bar_x + bar_width)):
         return True
     return False
+
+def check_collision_brick(ball_x, ball_y, brick):
+    if ((ball_y - r) <= (brick.y + brick.height)) and ((ball_x + r >= brick.x) and (ball_x - r <= brick.x + brick.width)):
+        return True
+    return False
+
+
+def check_collision_bricks_all(ball_x, ball_y):
+    for index, brick in enumerate(bricks):
+        if check_collision_brick(ball_x, ball_y, brick):
+            del bricks[index]
+            return True
+    return False
+
+def create_bricks():
+    for i in range(0, n_bricks_h):
+        for j in range(0, n_bricks_w):
+            b_x = j * brick_width
+            b_y = i * brick_height
+            color = (random.randrange(1, 255), random.randrange(1, 255), random.randrange(1, 255))
+            brick = Brick(b_x, b_y, brick_width, brick_height, color)
+            bricks.append(brick)
+
+def draw_bricks():
+    for brick in bricks:
+        draw_brick(brick)
+
 
 def process_frame(frame):
     # process the captured frame
@@ -106,33 +154,28 @@ def process_frame(frame):
 
 
 x = int(display_width / 2)
-y = int(display_height / 2)
+y = int(0.75 * display_height)
 delta_x = 2
-delta_y = -5
+delta_y = -4
 r = 20
 bar_x = int(display_width / 2)
-bar_y = int(0.75 * display_height)
+bar_y = int(0.85 * display_height)
 bar_delta_x = 0
-bar_width = 100
-bar_height = 40
+bar_width = 140
+bar_height = 20
+create_bricks()
 while True:
-    ret, frame = vs.read()
+    #ret, frame = vs.read()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                if bar_x >= 0:
-                    bar_delta_x = -10
-                else:
-                    bar_delta_x = 0
+                bar_delta_x = -10
 
             if event.key == pygame.K_RIGHT:
-                if bar_x + bar_delta_x <= display_width:
-                    bar_delta_x = 10
-                else:
-                    bar_delta_x = 0
+                bar_delta_x = 10
 #
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
@@ -140,7 +183,8 @@ while True:
 
     #print (x, y)
     gameDisplay.fill(white)
-
+    draw_bricks()
+    '''
     res = process_frame(frame)
     if (res):
         bar_x = res[0]
@@ -151,17 +195,20 @@ while True:
     # if the 'q' key is pressed, stop the loop
     if key == ord("q"):
         pygame.quit()
-        break
+        break'''
 
-    draw_tracker(x, y, r)
-    draw_bar(bar_x, bar_y, bar_width, bar_height)
-    bar_x += bar_delta_x
+    bar_x  += bar_delta_x
+    if bar_x <= 0:
+        bar_delta_x = 0
 
-    if ((y + (1 * r)) >= display_height) or (y <= 0):
+    if (bar_x + bar_width) >= display_width: 
+        bar_x = display_width - bar_width
+
+    if ((y + (1 * r)) >= display_height) or ((y - r) <= 0):
         delta_y = -1 * delta_y
         delta_x = get_rand_dir(delta_x)
 
-    if ((x + (1 * r)) >= display_width) or (x <= 0):
+    if ((x + (1 * r)) >= display_width) or (x - r <= 0):
         delta_x = -1 * delta_x
         delta_y = get_rand_dir(delta_y)
 
@@ -169,8 +216,25 @@ while True:
         delta_y = -1 * delta_y
         delta_x = get_rand_dir(delta_x)
 
+    if check_collision_bricks_all(x, y):
+        delta_y = -1 * delta_y
+        delta_x = get_rand_dir(delta_x)
+
     x += delta_x
     y += delta_y
+
+    if (x - r) <= 0:
+        x = r
+    if (x + r) >= display_width:
+        x = display_width - r
+
+    if (y - r) <= 0:
+        y = r
+    if (y + r) >= display_height:
+        y = display_height - r
+
+    draw_bar(bar_x, bar_y, bar_width, bar_height)
+    draw_tracker(x, y, r)
 
 
     pygame.display.update()
