@@ -32,7 +32,7 @@ red = (255,0,0)
 green = (0,255,0)
 blue = (0,0,255)
 
-display_width = 1000
+display_width = 800
 display_height = 800
 
 brick_width = 100
@@ -41,6 +41,11 @@ brick_vertical_cov = 400
 n_bricks_w = int(display_width / brick_width)
 n_bricks_h = int(brick_vertical_cov / brick_height)
 bricks = []
+
+#load background
+
+back_img = pygame.image.load('background.png')
+back_img = pygame.transform.scale(back_img, (1000, 800))
 
 line = []
 
@@ -159,13 +164,13 @@ delta_x = 2
 delta_y = -4
 r = 20
 bar_x = int(display_width / 2)
-bar_y = int(0.85 * display_height)
+bar_y = int(0.92 * display_height)
 bar_delta_x = 0
 bar_width = 140
 bar_height = 20
 create_bricks()
 while True:
-    #ret, frame = vs.read()
+    ret, frame = vs.read()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -183,8 +188,9 @@ while True:
 
     #print (x, y)
     gameDisplay.fill(white)
+    gameDisplay.blit(back_img, (0, 0))
     draw_bricks()
-    '''
+    
     res = process_frame(frame)
     if (res):
         bar_x = res[0]
@@ -195,11 +201,11 @@ while True:
     # if the 'q' key is pressed, stop the loop
     if key == ord("q"):
         pygame.quit()
-        break'''
+        break
 
     bar_x  += bar_delta_x
     if bar_x <= 0:
-        bar_delta_x = 0
+        bar_x = 0
 
     if (bar_x + bar_width) >= display_width: 
         bar_x = display_width - bar_width
