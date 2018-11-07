@@ -3,11 +3,17 @@ import numpy as np
 import cv2
 import math
 
+from collections import deque
+from imutils.video import VideoStream
+import argparse
+import imutils
+import time
+
 import random
 
 pygame.init()
 clock = pygame.time.Clock()
-
+vs = cv2.VideoCapture(0)
 
 
 white = (255,255,255)
@@ -59,32 +65,11 @@ def check_collision(ball_x, ball_y, bar_x, bar_y, r):
         return True
     return False
 
+def process_freme(frame):
+    # process the captured frame
+    pass
 
 
-#while True:
-    #for event in pygame.event.get():
-        #if event.type == pygame.QUIT:
-            #pygame.quit()
-            #quit()
-        #if event.type == pygame.KEYDOWN:
-            #if event.key == pygame.K_LEFT:
-                #change = True
-#
-        #if event.type == pygame.KEYUP:
-            #if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                #change = False
-#
-    ##print (x, y)
-    #gameDisplay.fill(white)
-#
-    #draw_tracker(x, y)
-    #if change == True:
-        #x += 1
-        #y = eq_straight_line(x, 5, 5)
-#
-#
-    #pygame.display.update()
-    #clock.tick(10)
 x = int(display_width / 2)
 y = int(display_height / 2)
 delta_x = 2
@@ -96,6 +81,7 @@ bar_delta_x = 0
 bar_width = 100
 bar_height = 40
 while True:
+    ret, frame = vs.read()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -120,6 +106,16 @@ while True:
     #print (x, y)
     gameDisplay.fill(white)
 
+    res = process_frame(frame)
+
+    cv2.imshow('frame',frame)
+    key = cv2.waitKey(1) & 0xFF
+ 
+    # if the 'q' key is pressed, stop the loop
+    if key == ord("q"):
+        pygame.quit()
+        break
+
     draw_tracker(x, y, r)
     draw_bar(bar_x, bar_y, bar_width, bar_height)
     bar_x += bar_delta_x
@@ -143,3 +139,5 @@ while True:
     pygame.display.update()
     clock.tick(60)
 
+vs.release()
+cv2.destroyAllWindows()
