@@ -28,6 +28,9 @@ display_height = 800
 
 line = []
 
+greenLower = (29, 86, 6)
+greenUpper = (64, 255, 255)
+
 gameDisplay = pygame.display.set_mode((display_width, display_height))
 gameDisplay.fill(white)
 
@@ -42,7 +45,6 @@ def draw_line():
         prev = curr
 
 def draw_tracker(x, y, r):
-    print (x, y)
     pygame.draw.circle(gameDisplay, blue, (x, y), 20)
 
 def eq_straight_line(x, m, c):
@@ -65,9 +67,42 @@ def check_collision(ball_x, ball_y, bar_x, bar_y, r):
         return True
     return False
 
-def process_freme(frame):
+def process_frame(frame):
     # process the captured frame
-    pass
+    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+ 
+    # construct a mask for the color "green", then perform
+    # a series of dilations and erosions to remove any small
+    # blobs left in the mask
+    mask = cv2.inRange(hsv, greenLower, greenUpper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+
+    # find contours in the mask and initialize the current
+    # (x, y) center of the ball
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+
+    if len(cnts) > 0:
+        # find the largest contour in the mask, then use
+        # it to compute the minimum enclosing circle and
+        # centroid
+        c = max(cnts, key=cv2.contourArea)
+        ((x, y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+ 
+        # only proceed if the radius meets a minimum size
+        if radius > 10:
+            # draw the circle and centroid on the frame,
+            # then update the list of tracked points
+            cv2.circle(frame, (int(x), int(y)), int(radius),
+                (0, 255, 255), 2)
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+            return x, y, center
+    return None
+
 
 
 x = int(display_width / 2)
@@ -107,6 +142,8 @@ while True:
     gameDisplay.fill(white)
 
     res = process_frame(frame)
+    if (res):
+        bar_x = res[0]
 
     cv2.imshow('frame',frame)
     key = cv2.waitKey(1) & 0xFF
